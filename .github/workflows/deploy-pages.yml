@@ -1,9 +1,9 @@
-name: Deploy ETF Analyzer to GitHub Pages
+name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [claude/etf-comparison-analyzer-4bne7l]
-    paths: ["etf-comparison-analyzer/**"]
+    branches: [claude/retirement-dashboard-xm09qf]
+    paths: ["retirement-dashboard/**", "etf-comparison-analyzer/**", ".github/workflows/deploy-pages.yml"]
   workflow_dispatch: {}
 
 permissions:
@@ -24,8 +24,41 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+      - name: Assemble combined site
+        run: |
+          mkdir -p _site/retirement-dashboard _site/etf-comparison-analyzer
+          cp -r retirement-dashboard/. _site/retirement-dashboard/
+          cp -r etf-comparison-analyzer/. _site/etf-comparison-analyzer/
+          cat > _site/index.html <<'EOF'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+          <meta charset="UTF-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+          <title>Projects</title>
+          <style>
+            body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; max-width: 640px; margin: 60px auto; padding: 0 20px; color: #0b0b0b; }
+            a.card { display: block; border: 1px solid rgba(11,11,11,0.12); border-radius: 12px; padding: 20px; margin-bottom: 16px; text-decoration: none; color: inherit; }
+            a.card:hover { background: #f5f5f3; }
+            a.card h2 { margin: 0 0 6px; font-size: 18px; }
+            a.card p { margin: 0; color: #52514e; font-size: 14px; }
+          </style>
+          </head>
+          <body>
+            <h1>Projects</h1>
+            <a class="card" href="./etf-comparison-analyzer/">
+              <h2>ETF Buy Analyzer &rarr;</h2>
+              <p>Compares VOO, QQQM, and SCHD across technicals, fundamentals, momentum, price targets, and earnings.</p>
+            </a>
+            <a class="card" href="./retirement-dashboard/">
+              <h2>Retirement Dashboard &rarr;</h2>
+              <p>Retirement planning dashboard.</p>
+            </a>
+          </body>
+          </html>
+          EOF
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: etf-comparison-analyzer
+          path: _site
       - id: deployment
         uses: actions/deploy-pages@v4
