@@ -16,6 +16,16 @@ dependencies, no backend — just open `index.html` in a browser.
   - **Current Plan** — your inputs as entered
   - **Save More** — current plan plus an extra monthly contribution
   - **Retire Later** — current plan worked for extra years before retiring
+- **Additional accounts & income, each with its own on/off toggle** — so you
+  can model what-if scenarios without deleting numbers:
+  - Roth IRA, brokerage account, and vested/unvested private equity — folded
+    into your invested savings and grown at the same expected return
+  - VA disability and military pension (monthly amounts) — added directly to
+    your estimated retirement income, in today's dollars
+  - Home value — shown as net worth (assumed to track inflation), not counted
+    toward retirement income
+- **Annual salary & bonus** — used to compute an income-replacement ratio
+  (estimated retirement income vs. current total pay)
 
 All inputs update every chart, stat tile, and table live.
 

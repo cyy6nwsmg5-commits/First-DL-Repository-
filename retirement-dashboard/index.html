@@ -125,16 +125,57 @@
     margin: 0 0 12px;
   }
   .form-section + .form-section { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--gridline); }
+  .form-hint { font-size: 11.5px; color: var(--text-muted); margin: -6px 0 12px; }
+
+  /* ---- toggle switch ---- */
+  .toggle-field .field-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .toggle-field .field-head label { margin-bottom: 0; }
+  .toggle-field.is-off .field-head label,
+  .toggle-field.is-off input[type="number"],
+  .toggle-field.is-off .suffix {
+    opacity: 0.45;
+  }
+  .switch { position: relative; display: inline-block; width: 32px; height: 19px; flex: none; }
+  .switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+  .switch .track {
+    position: absolute; inset: 0;
+    background: var(--gridline);
+    border-radius: 999px;
+    transition: background-color 0.15s ease;
+    pointer-events: none;
+  }
+  .switch .track::before {
+    content: "";
+    position: absolute;
+    left: 2px; top: 2px;
+    width: 15px; height: 15px;
+    border-radius: 50%;
+    background: var(--surface-1);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.25);
+    transition: transform 0.15s ease;
+  }
+  .switch input:checked + .track { background: var(--series-1); }
+  .switch input:checked + .track::before { transform: translateX(13px); }
+  .switch input:focus-visible + .track { outline: 2px solid var(--series-1); outline-offset: 2px; }
 
   /* ---- stat tiles ---- */
   .tiles {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 14px;
     margin-bottom: 20px;
   }
-  @media (max-width: 700px) {
+  @media (max-width: 860px) {
     .tiles { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 480px) {
+    .tiles { grid-template-columns: 1fr; }
   }
   .tile {
     background: var(--surface-1);
@@ -363,6 +404,88 @@
           <input type="number" id="extraYears" value="3" min="1" max="20" />
         </div>
       </div>
+
+      <div class="form-section">
+        <p class="form-title">Additional accounts</p>
+        <p class="form-hint">Toggle on and enter a balance to fold it into your invested savings. Grows at the same expected return.</p>
+
+        <div class="field toggle-field" id="rothIraField">
+          <div class="field-head">
+            <label for="rothIra">Roth IRA</label>
+            <label class="switch"><input type="checkbox" id="rothIraOn" /><span class="track"></span></label>
+          </div>
+          <div class="row"><span class="suffix">$</span><input type="number" id="rothIra" value="0" min="0" step="1000" /></div>
+        </div>
+
+        <div class="field toggle-field" id="brokerageField">
+          <div class="field-head">
+            <label for="brokerage">Brokerage account</label>
+            <label class="switch"><input type="checkbox" id="brokerageOn" /><span class="track"></span></label>
+          </div>
+          <div class="row"><span class="suffix">$</span><input type="number" id="brokerage" value="0" min="0" step="1000" /></div>
+        </div>
+
+        <div class="field toggle-field" id="peVestedField">
+          <div class="field-head">
+            <label for="peVested">Private equity (vested)</label>
+            <label class="switch"><input type="checkbox" id="peVestedOn" /><span class="track"></span></label>
+          </div>
+          <div class="row"><span class="suffix">$</span><input type="number" id="peVested" value="0" min="0" step="1000" /></div>
+        </div>
+
+        <div class="field toggle-field" id="peUnvestedField">
+          <div class="field-head">
+            <label for="peUnvested">Private equity (unvested)</label>
+            <label class="switch"><input type="checkbox" id="peUnvestedOn" /><span class="track"></span></label>
+          </div>
+          <div class="row"><span class="suffix">$</span><input type="number" id="peUnvested" value="0" min="0" step="1000" /></div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <p class="form-title">Retirement income streams</p>
+        <p class="form-hint">Toggle on and enter a monthly amount to add it directly to your estimated retirement income (today's dollars).</p>
+
+        <div class="field toggle-field" id="vaDisabilityField">
+          <div class="field-head">
+            <label for="vaDisability">VA disability (monthly)</label>
+            <label class="switch"><input type="checkbox" id="vaDisabilityOn" /><span class="track"></span></label>
+          </div>
+          <div class="row"><span class="suffix">$</span><input type="number" id="vaDisability" value="0" min="0" step="50" /></div>
+        </div>
+
+        <div class="field toggle-field" id="militaryPensionField">
+          <div class="field-head">
+            <label for="militaryPension">Military pension (monthly)</label>
+            <label class="switch"><input type="checkbox" id="militaryPensionOn" /><span class="track"></span></label>
+          </div>
+          <div class="row"><span class="suffix">$</span><input type="number" id="militaryPension" value="0" min="0" step="50" /></div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <p class="form-title">Home</p>
+        <div class="field toggle-field" id="homeValueField">
+          <div class="field-head">
+            <label for="homeValue">Home value</label>
+            <label class="switch"><input type="checkbox" id="homeValueOn" /><span class="track"></span></label>
+          </div>
+          <div class="row"><span class="suffix">$</span><input type="number" id="homeValue" value="0" min="0" step="5000" /></div>
+        </div>
+        <p class="form-hint">Shown as net worth, assumed to track inflation. Not counted toward retirement income.</p>
+      </div>
+
+      <div class="form-section">
+        <p class="form-title">Current income</p>
+        <div class="field">
+          <label for="annualSalary">Annual salary</label>
+          <div class="row"><span class="suffix">$</span><input type="number" id="annualSalary" value="0" min="0" step="1000" /></div>
+        </div>
+        <div class="field">
+          <label for="annualBonus">Annual bonus</label>
+          <div class="row"><span class="suffix">$</span><input type="number" id="annualBonus" value="0" min="0" step="1000" /></div>
+        </div>
+      </div>
     </div>
 
     <!-- MAIN CONTENT -->
@@ -424,7 +547,14 @@
         Estimates only, not financial advice. Projections assume a constant annual
         return and inflation rate and do not account for taxes, fees, employer
         matching, or Social Security. Retirement income is estimated by applying
-        the safe withdrawal rate to the inflation-adjusted balance at retirement.
+        the safe withdrawal rate to the inflation-adjusted balance at retirement,
+        plus any VA disability or military pension income you've enabled (assumed
+        flat in today's dollars, unaffected by scenario). Roth IRA, brokerage, and
+        private equity balances are folded into your invested savings and grow at
+        the same expected return; unvested private equity carries the same risk as
+        any unvested equity — treat it as directional, not guaranteed. Home value
+        is assumed to track inflation and is shown as net worth only, not counted
+        toward retirement income.
       </footer>
     </div>
   </div>
@@ -442,8 +572,12 @@
 
   var els = {};
   ["currentAge","retireAge","currentSavings","monthlyContribution","annualReturn",
-   "inflation","withdrawalRate","desiredIncome","extraContribution","extraYears"]
+   "inflation","withdrawalRate","desiredIncome","extraContribution","extraYears",
+   "rothIra","brokerage","peVested","peUnvested","vaDisability","militaryPension",
+   "homeValue","annualSalary","annualBonus"]
     .forEach(function (id) { els[id] = document.getElementById(id); });
+
+  var TOGGLE_IDS = ["rothIra","brokerage","peVested","peUnvested","vaDisability","militaryPension","homeValue"];
 
   var dollarMode = "nominal";
   var showYearly = false;
@@ -488,8 +622,44 @@
       withdrawalRate: Number(els.withdrawalRate.value) || 0,
       desiredIncome: Number(els.desiredIncome.value) || 0,
       extraContribution: Number(els.extraContribution.value) || 0,
-      extraYears: Number(els.extraYears.value) || 0
+      extraYears: Number(els.extraYears.value) || 0,
+
+      rothIraOn: document.getElementById("rothIraOn").checked,
+      rothIra: Number(els.rothIra.value) || 0,
+      brokerageOn: document.getElementById("brokerageOn").checked,
+      brokerage: Number(els.brokerage.value) || 0,
+      peVestedOn: document.getElementById("peVestedOn").checked,
+      peVested: Number(els.peVested.value) || 0,
+      peUnvestedOn: document.getElementById("peUnvestedOn").checked,
+      peUnvested: Number(els.peUnvested.value) || 0,
+
+      vaDisabilityOn: document.getElementById("vaDisabilityOn").checked,
+      vaDisability: Number(els.vaDisability.value) || 0,
+      militaryPensionOn: document.getElementById("militaryPensionOn").checked,
+      militaryPension: Number(els.militaryPension.value) || 0,
+
+      homeValueOn: document.getElementById("homeValueOn").checked,
+      homeValue: Number(els.homeValue.value) || 0,
+
+      annualSalary: Number(els.annualSalary.value) || 0,
+      annualBonus: Number(els.annualBonus.value) || 0
     };
+  }
+
+  function extraPrincipal(inp) {
+    var total = 0;
+    if (inp.rothIraOn) total += inp.rothIra;
+    if (inp.brokerageOn) total += inp.brokerage;
+    if (inp.peVestedOn) total += inp.peVested;
+    if (inp.peUnvestedOn) total += inp.peUnvested;
+    return total;
+  }
+
+  function guaranteedAnnualIncome(inp) {
+    var total = 0;
+    if (inp.vaDisabilityOn) total += inp.vaDisability * 12;
+    if (inp.militaryPensionOn) total += inp.militaryPension * 12;
+    return total;
   }
 
   function buildScenarios(inp) {
@@ -498,7 +668,7 @@
     var base = {
       currentAge: inp.currentAge,
       retireAge: Math.max(inp.retireAge, inp.currentAge + 1),
-      currentSavings: inp.currentSavings,
+      currentSavings: inp.currentSavings + extraPrincipal(inp),
       annualContribution: inp.monthlyContribution * 12,
       r: r, infl: infl
     };
@@ -516,8 +686,8 @@
     };
   }
 
-  function withdrawalStats(realBalanceAtRetirement, withdrawalRate, desiredIncome) {
-    var annual = realBalanceAtRetirement * (withdrawalRate / 100);
+  function withdrawalStats(realBalanceAtRetirement, withdrawalRate, desiredIncome, guaranteedAnnual) {
+    var annual = realBalanceAtRetirement * (withdrawalRate / 100) + (guaranteedAnnual || 0);
     var monthly = annual / 12;
     var readiness = desiredIncome > 0 ? (annual / desiredIncome) * 100 : 0;
     return { annual: annual, monthly: monthly, readiness: readiness };
@@ -533,15 +703,28 @@
   function renderTiles(inp, scenarios) {
     var cur = scenarios.current;
     var last = cur[cur.length - 1];
-    var stats = withdrawalStats(last.real, inp.withdrawalRate, inp.desiredIncome);
+    var guaranteed = guaranteedAnnualIncome(inp);
+    var stats = withdrawalStats(last.real, inp.withdrawalRate, inp.desiredIncome, guaranteed);
     var status = statusForReadiness(stats.readiness);
     var statusLabel = status === "good" ? "On track" : status === "warning" ? "Below goal" : "Behind goal";
+
+    var homeReal = inp.homeValueOn ? inp.homeValue : 0;
+    var netWorthReal = last.real + homeReal;
+
+    var currentIncome = inp.annualSalary + inp.annualBonus;
+    var replacementPct = currentIncome > 0 ? (stats.annual / currentIncome) * 100 : null;
+    var replacementStatus = replacementPct === null ? null : statusForReadiness(replacementPct);
+    var replacementLabel = replacementPct === null
+      ? "Add salary to compare"
+      : (replacementStatus === "good" ? "Fully replaces pay" : replacementStatus === "warning" ? "Partial replacement" : "Low replacement");
 
     var tiles = [
       { label: "Balance at retirement (nominal)", value: fmtMoney(last.nominal), sub: "Age " + last.age },
       { label: "Balance at retirement (today's $)", value: fmtMoney(last.real), sub: "Inflation-adjusted" },
       { label: "Est. monthly retirement income", value: fmtMoney(stats.monthly), sub: fmtMoney(stats.annual) + "/yr, today's $" },
-      { label: "Retirement readiness", value: Math.round(stats.readiness) + "%", sub: statusLabel, statusClass: "status-" + status }
+      { label: "Retirement readiness", value: Math.round(stats.readiness) + "%", sub: statusLabel, statusClass: "status-" + status },
+      { label: "Total net worth at retirement", value: fmtMoney(netWorthReal), sub: homeReal > 0 ? "Incl. home, today's $" : "Today's $" },
+      { label: "Income replacement", value: replacementPct === null ? "—" : Math.round(replacementPct) + "%", sub: replacementLabel, statusClass: replacementStatus ? "status-" + replacementStatus : "" }
     ];
 
     var wrap = document.getElementById("tiles");
@@ -584,10 +767,11 @@
   function renderCompareTable(inp, scenarios) {
     var body = document.getElementById("compareBody");
     body.innerHTML = "";
+    var guaranteed = guaranteedAnnualIncome(inp);
     SERIES.forEach(function (s) {
       var years = scenarios[s.key];
       var last = years[years.length - 1];
-      var stats = withdrawalStats(last.real, inp.withdrawalRate, inp.desiredIncome);
+      var stats = withdrawalStats(last.real, inp.withdrawalRate, inp.desiredIncome, guaranteed);
       var status = statusForReadiness(stats.readiness);
       var tr = document.createElement("tr");
 
@@ -841,6 +1025,14 @@
     showYearly = !showYearly;
     this.textContent = showYearly ? "Hide year-by-year table" : "Show year-by-year table (Current Plan)";
     renderAll();
+  });
+
+  TOGGLE_IDS.forEach(function (id) {
+    var checkbox = document.getElementById(id + "On");
+    var field = document.getElementById(id + "Field");
+    function sync() { field.classList.toggle("is-off", !checkbox.checked); }
+    checkbox.addEventListener("change", function () { sync(); renderAll(); });
+    sync();
   });
 
   window.addEventListener("resize", renderAll);
