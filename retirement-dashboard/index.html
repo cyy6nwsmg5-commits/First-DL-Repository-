@@ -1,0 +1,852 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Retirement Dashboard</title>
+<style>
+  :root {
+    --surface-1:      #fcfcfb;
+    --surface-page:   #f9f9f7;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --gridline:       #e1e0d9;
+    --baseline:       #c3c2b7;
+    --border:         rgba(11,11,11,0.10);
+
+    --series-1: #2a78d6; /* Current Plan */
+    --series-2: #1baf7a; /* Save More */
+    --series-3: #eda100; /* Retire Later */
+
+    --status-good:     #0ca30c;
+    --status-warning:  #fab219;
+    --status-serious:  #ec835a;
+    --status-critical: #d03b3b;
+
+    --area-1: rgba(42,120,214,0.10);
+    --area-2: rgba(27,175,122,0.10);
+    --area-3: rgba(237,161,0,0.10);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --surface-1:      #1a1a19;
+      --surface-page:   #0d0d0d;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:     #898781;
+      --gridline:       #2c2c2a;
+      --baseline:       #383835;
+      --border:         rgba(255,255,255,0.10);
+
+      --series-1: #3987e5;
+      --series-2: #199e70;
+      --series-3: #c98500;
+
+      --status-good:     #0ca30c;
+      --status-warning:  #fab219;
+      --status-serious:  #ec835a;
+      --status-critical: #d03b3b;
+
+      --area-1: rgba(57,135,229,0.14);
+      --area-2: rgba(25,158,112,0.14);
+      --area-3: rgba(201,133,0,0.14);
+    }
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--surface-page);
+    color: var(--text-primary);
+  }
+  .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 32px 20px 64px;
+  }
+  header.page-head {
+    margin-bottom: 24px;
+  }
+  header.page-head h1 {
+    font-size: 26px;
+    font-weight: 650;
+    margin: 0 0 4px;
+  }
+  header.page-head p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 14px;
+  }
+
+  .card {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .grid-top {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+  @media (max-width: 860px) {
+    .grid-top { grid-template-columns: 1fr; }
+  }
+
+  /* ---- form ---- */
+  .field { margin-bottom: 14px; }
+  .field label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+  }
+  .field .row { display: flex; align-items: center; gap: 8px; }
+  .field input[type="number"] {
+    width: 100%;
+    padding: 7px 9px;
+    font-size: 14px;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    background: var(--surface-page);
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+  }
+  .field .suffix { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+  .form-title {
+    font-size: 13px;
+    font-weight: 650;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--text-secondary);
+    margin: 0 0 12px;
+  }
+  .form-section + .form-section { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--gridline); }
+
+  /* ---- stat tiles ---- */
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  @media (max-width: 700px) {
+    .tiles { grid-template-columns: repeat(2, 1fr); }
+  }
+  .tile {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 18px;
+  }
+  .tile .label { font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; }
+  .tile .value { font-size: 24px; font-weight: 650; }
+  .tile .sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+  .tile .sub.status-good { color: var(--status-good); }
+  .tile .sub.status-warning { color: #9a6a00; }
+  .tile .sub.status-critical { color: var(--status-critical); }
+  @media (prefers-color-scheme: dark) {
+    .tile .sub.status-warning { color: var(--status-warning); }
+  }
+
+  /* ---- chart card ---- */
+  .chart-card { margin-bottom: 20px; }
+  .chart-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .chart-head h2 { font-size: 15px; margin: 0; font-weight: 650; }
+  .chart-head .desc { font-size: 12.5px; color: var(--text-secondary); margin: 2px 0 12px; }
+
+  .toggle-group {
+    display: inline-flex;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .toggle-group button {
+    font-size: 12.5px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    padding: 6px 12px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .toggle-group button.active {
+    background: var(--series-1);
+    color: #fff;
+  }
+
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; margin: 8px 0 4px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text-secondary); }
+  .legend-item .swatch { width: 14px; height: 2px; border-radius: 1px; }
+
+  .chart-svg-wrap { position: relative; }
+  svg.chart-svg { width: 100%; height: auto; display: block; overflow: visible; }
+  .gridline { stroke: var(--gridline); stroke-width: 1; }
+  .baseline { stroke: var(--baseline); stroke-width: 1; }
+  .axis-label { fill: var(--text-muted); font-size: 11px; }
+  .series-line { fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .series-end-dot { stroke-width: 2; }
+  .end-label { font-size: 12px; font-weight: 600; fill: var(--text-primary); }
+
+  .crosshair { stroke: var(--baseline); stroke-width: 1; pointer-events: none; }
+  .hover-dot { stroke-width: 2; pointer-events: none; }
+
+  .tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 12.5px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    opacity: 0;
+    transition: opacity 0.08s ease;
+    white-space: nowrap;
+    z-index: 5;
+  }
+  .tooltip .t-age { color: var(--text-secondary); margin-bottom: 4px; }
+  .tooltip .t-row { display: flex; align-items: center; gap: 6px; }
+  .tooltip .t-key { width: 10px; height: 2px; border-radius: 1px; flex: none; }
+  .tooltip .t-name { color: var(--text-secondary); margin-right: 6px; }
+  .tooltip .t-val { font-weight: 650; margin-left: auto; font-variant-numeric: tabular-nums; }
+
+  .hit-layer { fill: transparent; }
+
+  /* ---- readiness meter ---- */
+  .meter-card { margin-bottom: 20px; }
+  .meter-track {
+    position: relative;
+    height: 10px;
+    border-radius: 6px;
+    background: var(--gridline);
+    overflow: hidden;
+    margin: 10px 0 8px;
+  }
+  .meter-fill {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    border-radius: 6px;
+    transition: width 0.2s ease, background-color 0.2s ease;
+  }
+  .meter-scale { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); }
+
+  /* ---- comparison table ---- */
+  table.compare {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  table.compare th, table.compare td {
+    text-align: left;
+    padding: 9px 10px;
+    border-bottom: 1px solid var(--gridline);
+  }
+  table.compare th { color: var(--text-secondary); font-weight: 600; font-size: 12px; }
+  table.compare td.num, table.compare th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  table.compare .key { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 8px; vertical-align: -1px; }
+
+  .table-toggle-row { display: flex; justify-content: flex-end; margin-top: 10px; }
+  .link-btn {
+    background: none; border: none; color: var(--series-1); font-size: 12.5px;
+    cursor: pointer; padding: 0; font-family: inherit;
+  }
+  .yearly-table-wrap { margin-top: 12px; max-height: 260px; overflow: auto; border-top: 1px solid var(--gridline); }
+  .yearly-table-wrap table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .yearly-table-wrap th, .yearly-table-wrap td { padding: 6px 10px; text-align: right; border-bottom: 1px solid var(--gridline); }
+  .yearly-table-wrap th:first-child, .yearly-table-wrap td:first-child { text-align: left; }
+  .yearly-table-wrap thead th { position: sticky; top: 0; background: var(--surface-1); color: var(--text-secondary); }
+
+  footer.note {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    margin-top: 24px;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="page-head">
+    <h1>Retirement Dashboard</h1>
+    <p>Project your savings, estimate retirement income, and compare plans side by side.</p>
+  </header>
+
+  <div class="grid-top">
+    <!-- INPUT PANEL -->
+    <div class="card" id="input-panel">
+      <p class="form-title">Your plan</p>
+
+      <div class="form-section">
+        <div class="field">
+          <label for="currentAge">Current age</label>
+          <input type="number" id="currentAge" value="35" min="18" max="80" />
+        </div>
+        <div class="field">
+          <label for="retireAge">Retirement age</label>
+          <input type="number" id="retireAge" value="65" min="19" max="90" />
+        </div>
+        <div class="field">
+          <label for="currentSavings">Current retirement savings</label>
+          <div class="row">
+            <span class="suffix">$</span>
+            <input type="number" id="currentSavings" value="45000" min="0" step="1000" />
+          </div>
+        </div>
+        <div class="field">
+          <label for="monthlyContribution">Monthly contribution</label>
+          <div class="row">
+            <span class="suffix">$</span>
+            <input type="number" id="monthlyContribution" value="600" min="0" step="50" />
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <p class="form-title">Assumptions</p>
+        <div class="field">
+          <label for="annualReturn">Expected annual return</label>
+          <div class="row">
+            <input type="number" id="annualReturn" value="6" min="0" max="15" step="0.1" />
+            <span class="suffix">%</span>
+          </div>
+        </div>
+        <div class="field">
+          <label for="inflation">Inflation rate</label>
+          <div class="row">
+            <input type="number" id="inflation" value="2.5" min="0" max="10" step="0.1" />
+            <span class="suffix">%</span>
+          </div>
+        </div>
+        <div class="field">
+          <label for="withdrawalRate">Safe withdrawal rate</label>
+          <div class="row">
+            <input type="number" id="withdrawalRate" value="4" min="1" max="10" step="0.1" />
+            <span class="suffix">%</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <p class="form-title">Retirement goal</p>
+        <div class="field">
+          <label for="desiredIncome">Desired annual income (today's $)</label>
+          <div class="row">
+            <span class="suffix">$</span>
+            <input type="number" id="desiredIncome" value="60000" min="0" step="1000" />
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <p class="form-title">Scenario comparison</p>
+        <div class="field">
+          <label for="extraContribution">"Save more" extra monthly contribution</label>
+          <div class="row">
+            <span class="suffix">$</span>
+            <input type="number" id="extraContribution" value="200" min="0" step="50" />
+          </div>
+        </div>
+        <div class="field">
+          <label for="extraYears">"Retire later" extra years worked</label>
+          <input type="number" id="extraYears" value="3" min="1" max="20" />
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div>
+      <div class="tiles" id="tiles"></div>
+
+      <div class="card chart-card">
+        <div class="chart-head">
+          <div>
+            <h2>Savings growth projection</h2>
+          </div>
+          <div class="toggle-group" id="dollarToggle">
+            <button data-mode="nominal" class="active">Nominal $</button>
+            <button data-mode="real">Today's $</button>
+          </div>
+        </div>
+        <p class="desc">Projected balance for age <span id="ageNowLabel">35</span>&ndash;<span id="ageMaxLabel">68</span> across three scenarios.</p>
+        <div class="legend" id="legend"></div>
+        <div class="chart-svg-wrap">
+          <svg class="chart-svg" id="chart" viewBox="0 0 900 340" preserveAspectRatio="xMidYMid meet"></svg>
+          <div class="tooltip" id="tooltip"></div>
+        </div>
+      </div>
+
+      <div class="card meter-card">
+        <div class="chart-head">
+          <h2>Retirement readiness</h2>
+        </div>
+        <p class="desc" id="meterDesc">Estimated retirement income vs. your goal, in today's dollars.</p>
+        <div class="meter-track"><div class="meter-fill" id="meterFill"></div></div>
+        <div class="meter-scale"><span>0%</span><span>50%</span><span>100%</span><span>150%+</span></div>
+      </div>
+
+      <div class="card">
+        <div class="chart-head">
+          <h2>Scenario comparison</h2>
+        </div>
+        <p class="desc">Balance and income at retirement for each scenario (today's dollars).</p>
+        <table class="compare" id="compareTable">
+          <thead>
+            <tr>
+              <th>Scenario</th>
+              <th class="num">Retirement age</th>
+              <th class="num">Balance (real)</th>
+              <th class="num">Monthly income</th>
+              <th class="num">Readiness</th>
+            </tr>
+          </thead>
+          <tbody id="compareBody"></tbody>
+        </table>
+
+        <div class="table-toggle-row">
+          <button class="link-btn" id="yearlyToggleBtn">Show year-by-year table (Current Plan)</button>
+        </div>
+        <div class="yearly-table-wrap" id="yearlyTableWrap" style="display:none;"></div>
+      </div>
+
+      <footer class="note">
+        Estimates only, not financial advice. Projections assume a constant annual
+        return and inflation rate and do not account for taxes, fees, employer
+        matching, or Social Security. Retirement income is estimated by applying
+        the safe withdrawal rate to the inflation-adjusted balance at retirement.
+      </footer>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var SERIES = [
+    { key: "current", name: "Current Plan", color: "var(--series-1)", raw: "#2a78d6" },
+    { key: "saveMore", name: "Save More", color: "var(--series-2)", raw: "#1baf7a" },
+    { key: "retireLater", name: "Retire Later", color: "var(--series-3)", raw: "#eda100" }
+  ];
+
+  var els = {};
+  ["currentAge","retireAge","currentSavings","monthlyContribution","annualReturn",
+   "inflation","withdrawalRate","desiredIncome","extraContribution","extraYears"]
+    .forEach(function (id) { els[id] = document.getElementById(id); });
+
+  var dollarMode = "nominal";
+  var showYearly = false;
+
+  function fmtMoney(v, compact) {
+    if (compact) {
+      var abs = Math.abs(v);
+      if (abs >= 1e6) return (v / 1e6).toFixed(2) + "M";
+      if (abs >= 1e3) return (v / 1e3).toFixed(0) + "K";
+      return Math.round(v).toString();
+    }
+    return "$" + Math.round(v).toLocaleString("en-US");
+  }
+
+  function fmtMoneyShort(v) {
+    return "$" + fmtMoney(v, true);
+  }
+
+  // ---- core projection math ----
+  function project(params) {
+    // params: currentAge, retireAge, currentSavings, annualContribution, r, infl
+    var n = params.retireAge - params.currentAge;
+    var years = [];
+    var balance = params.currentSavings;
+    years.push({ age: params.currentAge, year: 0, nominal: balance, real: balance });
+    for (var y = 1; y <= n; y++) {
+      balance = balance * (1 + params.r) + params.annualContribution;
+      var real = balance / Math.pow(1 + params.infl, y);
+      years.push({ age: params.currentAge + y, year: y, nominal: balance, real: real });
+    }
+    return years;
+  }
+
+  function readInputs() {
+    return {
+      currentAge: Number(els.currentAge.value) || 0,
+      retireAge: Number(els.retireAge.value) || 0,
+      currentSavings: Number(els.currentSavings.value) || 0,
+      monthlyContribution: Number(els.monthlyContribution.value) || 0,
+      annualReturn: Number(els.annualReturn.value) || 0,
+      inflation: Number(els.inflation.value) || 0,
+      withdrawalRate: Number(els.withdrawalRate.value) || 0,
+      desiredIncome: Number(els.desiredIncome.value) || 0,
+      extraContribution: Number(els.extraContribution.value) || 0,
+      extraYears: Number(els.extraYears.value) || 0
+    };
+  }
+
+  function buildScenarios(inp) {
+    var r = inp.annualReturn / 100;
+    var infl = inp.inflation / 100;
+    var base = {
+      currentAge: inp.currentAge,
+      retireAge: Math.max(inp.retireAge, inp.currentAge + 1),
+      currentSavings: inp.currentSavings,
+      annualContribution: inp.monthlyContribution * 12,
+      r: r, infl: infl
+    };
+    var saveMore = Object.assign({}, base, {
+      annualContribution: (inp.monthlyContribution + inp.extraContribution) * 12
+    });
+    var retireLater = Object.assign({}, base, {
+      retireAge: base.retireAge + inp.extraYears
+    });
+
+    return {
+      current: project(base),
+      saveMore: project(saveMore),
+      retireLater: project(retireLater)
+    };
+  }
+
+  function withdrawalStats(realBalanceAtRetirement, withdrawalRate, desiredIncome) {
+    var annual = realBalanceAtRetirement * (withdrawalRate / 100);
+    var monthly = annual / 12;
+    var readiness = desiredIncome > 0 ? (annual / desiredIncome) * 100 : 0;
+    return { annual: annual, monthly: monthly, readiness: readiness };
+  }
+
+  function statusForReadiness(pct) {
+    if (pct >= 100) return "good";
+    if (pct >= 70) return "warning";
+    return "critical";
+  }
+
+  // ---- render: stat tiles ----
+  function renderTiles(inp, scenarios) {
+    var cur = scenarios.current;
+    var last = cur[cur.length - 1];
+    var stats = withdrawalStats(last.real, inp.withdrawalRate, inp.desiredIncome);
+    var status = statusForReadiness(stats.readiness);
+    var statusLabel = status === "good" ? "On track" : status === "warning" ? "Below goal" : "Behind goal";
+
+    var tiles = [
+      { label: "Balance at retirement (nominal)", value: fmtMoney(last.nominal), sub: "Age " + last.age },
+      { label: "Balance at retirement (today's $)", value: fmtMoney(last.real), sub: "Inflation-adjusted" },
+      { label: "Est. monthly retirement income", value: fmtMoney(stats.monthly), sub: fmtMoney(stats.annual) + "/yr, today's $" },
+      { label: "Retirement readiness", value: Math.round(stats.readiness) + "%", sub: statusLabel, statusClass: "status-" + status }
+    ];
+
+    var wrap = document.getElementById("tiles");
+    wrap.innerHTML = "";
+    tiles.forEach(function (t) {
+      var div = document.createElement("div");
+      div.className = "tile";
+      var l = document.createElement("div"); l.className = "label"; l.textContent = t.label;
+      var v = document.createElement("div"); v.className = "value"; v.textContent = t.value;
+      var s = document.createElement("div"); s.className = "sub" + (t.statusClass ? " " + t.statusClass : ""); s.textContent = t.sub;
+      div.appendChild(l); div.appendChild(v); div.appendChild(s);
+      wrap.appendChild(div);
+    });
+
+    document.getElementById("ageNowLabel").textContent = inp.currentAge;
+    var maxAge = Math.max(
+      scenarios.current[scenarios.current.length - 1].age,
+      scenarios.saveMore[scenarios.saveMore.length - 1].age,
+      scenarios.retireLater[scenarios.retireLater.length - 1].age
+    );
+    document.getElementById("ageMaxLabel").textContent = maxAge;
+
+    return { stats: stats, status: status };
+  }
+
+  // ---- render: readiness meter ----
+  function renderMeter(readinessPct, status) {
+    var fill = document.getElementById("meterFill");
+    var clamped = Math.max(0, Math.min(150, readinessPct));
+    var widthPct = (clamped / 150) * 100;
+    fill.style.width = widthPct + "%";
+    var color = status === "good" ? "var(--status-good)" : status === "warning" ? "var(--status-warning)" : "var(--status-critical)";
+    fill.style.backgroundColor = color;
+    document.getElementById("meterDesc").textContent =
+      "Estimated retirement income covers " + Math.round(readinessPct) +
+      "% of your " + fmtMoneyShort(Number(els.desiredIncome.value)) + "/yr goal, in today's dollars.";
+  }
+
+  // ---- render: comparison table ----
+  function renderCompareTable(inp, scenarios) {
+    var body = document.getElementById("compareBody");
+    body.innerHTML = "";
+    SERIES.forEach(function (s) {
+      var years = scenarios[s.key];
+      var last = years[years.length - 1];
+      var stats = withdrawalStats(last.real, inp.withdrawalRate, inp.desiredIncome);
+      var status = statusForReadiness(stats.readiness);
+      var tr = document.createElement("tr");
+
+      var tdName = document.createElement("td");
+      var keySpan = document.createElement("span");
+      keySpan.className = "key";
+      keySpan.style.background = s.raw;
+      tdName.appendChild(keySpan);
+      tdName.appendChild(document.createTextNode(s.name));
+      tr.appendChild(tdName);
+
+      var tdAge = document.createElement("td"); tdAge.className = "num"; tdAge.textContent = last.age;
+      var tdBal = document.createElement("td"); tdBal.className = "num"; tdBal.textContent = fmtMoney(last.real);
+      var tdInc = document.createElement("td"); tdInc.className = "num"; tdInc.textContent = fmtMoney(stats.monthly) + "/mo";
+      var tdReady = document.createElement("td"); tdReady.className = "num";
+      tdReady.textContent = Math.round(stats.readiness) + "%";
+      tdReady.style.color = status === "good" ? "var(--status-good)" : status === "critical" ? "var(--status-critical)" : "inherit";
+
+      tr.appendChild(tdAge); tr.appendChild(tdBal); tr.appendChild(tdInc); tr.appendChild(tdReady);
+      body.appendChild(tr);
+    });
+  }
+
+  // ---- render: yearly table for Current Plan ----
+  function renderYearlyTable(years) {
+    var wrap = document.getElementById("yearlyTableWrap");
+    if (!showYearly) { wrap.style.display = "none"; return; }
+    wrap.style.display = "block";
+    wrap.innerHTML = "";
+    var table = document.createElement("table");
+    var thead = document.createElement("thead");
+    thead.innerHTML = "<tr><th>Age</th><th>Year</th><th>Balance (nominal)</th><th>Balance (today's $)</th></tr>";
+    table.appendChild(thead);
+    var tbody = document.createElement("tbody");
+    years.forEach(function (row) {
+      var tr = document.createElement("tr");
+      tr.innerHTML = "<td>" + row.age + "</td><td>" + row.year + "</td><td>" +
+        fmtMoney(row.nominal) + "</td><td>" + fmtMoney(row.real) + "</td>";
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    wrap.appendChild(table);
+  }
+
+  // ---- render: legend ----
+  function renderLegend() {
+    var legend = document.getElementById("legend");
+    legend.innerHTML = "";
+    SERIES.forEach(function (s) {
+      var item = document.createElement("div");
+      item.className = "legend-item";
+      var sw = document.createElement("span");
+      sw.className = "swatch";
+      sw.style.background = s.raw;
+      item.appendChild(sw);
+      item.appendChild(document.createTextNode(s.name));
+      legend.appendChild(item);
+    });
+  }
+
+  // ---- render: SVG line chart ----
+  var CHART_W = 900, CHART_H = 340;
+  var PAD = { top: 16, right: 84, bottom: 28, left: 56 };
+
+  function renderChart(scenarios) {
+    var svg = document.getElementById("chart");
+    svg.innerHTML = "";
+    svg.setAttribute("viewBox", "0 0 " + CHART_W + " " + CHART_H);
+
+    var field = dollarMode === "nominal" ? "nominal" : "real";
+
+    var allYears = SERIES.reduce(function (acc, s) {
+      return acc.concat(scenarios[s.key]);
+    }, []);
+    var minAge = Math.min.apply(null, allYears.map(function (d) { return d.age; }));
+    var maxAge = Math.max.apply(null, allYears.map(function (d) { return d.age; }));
+    var maxVal = Math.max.apply(null, allYears.map(function (d) { return d[field]; }));
+    maxVal = maxVal <= 0 ? 1 : maxVal;
+
+    // round maxVal up to a clean step
+    var magnitude = Math.pow(10, Math.floor(Math.log10(maxVal)));
+    var niceMax = Math.ceil(maxVal / (magnitude / 2)) * (magnitude / 2);
+
+    var innerW = CHART_W - PAD.left - PAD.right;
+    var innerH = CHART_H - PAD.top - PAD.bottom;
+
+    function x(age) { return PAD.left + ((age - minAge) / (maxAge - minAge || 1)) * innerW; }
+    function y(val) { return PAD.top + innerH - (val / niceMax) * innerH; }
+
+    var ns = "http://www.w3.org/2000/svg";
+    function el(tag, attrs) {
+      var e = document.createElementNS(ns, tag);
+      for (var k in attrs) e.setAttribute(k, attrs[k]);
+      return e;
+    }
+
+    // gridlines (y, 4 steps) + labels
+    var steps = 4;
+    for (var i = 0; i <= steps; i++) {
+      var val = (niceMax / steps) * i;
+      var gy = y(val);
+      svg.appendChild(el("line", { class: "gridline", x1: PAD.left, x2: CHART_W - PAD.right, y1: gy, y2: gy }));
+      var label = el("text", { class: "axis-label", x: PAD.left - 8, y: gy + 4, "text-anchor": "end" });
+      label.textContent = fmtMoneyShort(val);
+      svg.appendChild(label);
+    }
+
+    // x axis ticks (every ~5 years, capped count)
+    var ageSpan = maxAge - minAge;
+    var tickStep = ageSpan <= 10 ? 2 : ageSpan <= 30 ? 5 : 10;
+    for (var age = minAge; age <= maxAge; age += tickStep) {
+      var gx = x(age);
+      var tick = el("text", { class: "axis-label", x: gx, y: CHART_H - PAD.bottom + 18, "text-anchor": "middle" });
+      tick.textContent = age;
+      svg.appendChild(tick);
+    }
+    // baseline
+    svg.appendChild(el("line", { class: "baseline", x1: PAD.left, x2: CHART_W - PAD.right, y1: CHART_H - PAD.bottom, y2: CHART_H - PAD.bottom }));
+
+    // series lines + end dots + end labels
+    var seriesPoints = {};
+    SERIES.forEach(function (s) {
+      var years = scenarios[s.key];
+      var pts = years.map(function (d) { return [x(d.age), y(d[field])]; });
+      seriesPoints[s.key] = { years: years, pts: pts };
+      var d = pts.map(function (p, idx) { return (idx === 0 ? "M" : "L") + p[0] + "," + p[1]; }).join(" ");
+      svg.appendChild(el("path", { class: "series-line", d: d, stroke: s.raw }));
+
+      var lastPt = pts[pts.length - 1];
+      var dot = el("circle", { class: "series-end-dot", cx: lastPt[0], cy: lastPt[1], r: 4, fill: s.raw, stroke: "var(--surface-1)" });
+      svg.appendChild(dot);
+
+      var lbl = el("text", { class: "end-label", x: lastPt[0] + 8, y: lastPt[1] + 4 });
+      lbl.textContent = fmtMoneyShort(years[years.length - 1][field]);
+      svg.appendChild(lbl);
+    });
+
+    // hover layer: crosshair + dots + hit rect
+    var crosshair = el("line", { class: "crosshair", x1: 0, x2: 0, y1: PAD.top, y2: CHART_H - PAD.bottom, style: "opacity:0" });
+    svg.appendChild(crosshair);
+
+    var hoverDots = {};
+    SERIES.forEach(function (s) {
+      var dot = el("circle", { class: "hover-dot", r: 5, fill: s.raw, stroke: "var(--surface-1)", style: "opacity:0" });
+      svg.appendChild(dot);
+      hoverDots[s.key] = dot;
+    });
+
+    var hitRect = el("rect", { class: "hit-layer", x: PAD.left, y: PAD.top, width: innerW, height: innerH });
+    svg.appendChild(hitRect);
+
+    var tooltip = document.getElementById("tooltip");
+
+    function findNearestYearIndex(mouseAge) {
+      var years = scenarios.current;
+      var idx = 0, best = Infinity;
+      years.forEach(function (d, i) {
+        var diff = Math.abs(d.age - mouseAge);
+        if (diff < best) { best = diff; idx = i; }
+      });
+      return idx;
+    }
+
+    function onMove(evt) {
+      var rect = svg.getBoundingClientRect();
+      var scaleX = CHART_W / rect.width;
+      var mx = (evt.clientX - rect.left) * scaleX;
+      var mouseAge = minAge + ((mx - PAD.left) / innerW) * (maxAge - minAge);
+      mouseAge = Math.max(minAge, Math.min(maxAge, mouseAge));
+      var idx = findNearestYearIndex(mouseAge);
+
+      var refYears = scenarios.current;
+      var refAge = refYears[idx] ? refYears[idx].age : minAge;
+      var gx = x(refAge);
+      crosshair.setAttribute("x1", gx);
+      crosshair.setAttribute("x2", gx);
+      crosshair.style.opacity = 1;
+
+      var rows = [];
+      SERIES.forEach(function (s) {
+        var years = scenarios[s.key];
+        var clampedIdx = Math.min(idx, years.length - 1);
+        var d = years[clampedIdx];
+        var gy = y(d[field]);
+        var dot = hoverDots[s.key];
+        dot.setAttribute("cx", gx);
+        dot.setAttribute("cy", gy);
+        dot.style.opacity = 1;
+        rows.push({ name: s.name, color: s.raw, value: d[field], age: d.age });
+      });
+
+      var html = '<div class="t-age">Age ' + rows[0].age + '</div>';
+      rows.forEach(function (r) {
+        html += '<div class="t-row"><span class="t-key" style="background:' + r.color + '"></span>' +
+          '<span class="t-name"></span><span class="t-val"></span></div>';
+      });
+      tooltip.innerHTML = html;
+      var rowEls = tooltip.querySelectorAll(".t-row");
+      rows.forEach(function (r, i) {
+        rowEls[i].querySelector(".t-name").textContent = r.name;
+        rowEls[i].querySelector(".t-val").textContent = fmtMoney(r.value);
+      });
+
+      var wrapRect = svg.parentElement.getBoundingClientRect();
+      var svgScale = rect.width / CHART_W;
+      var tipX = rect.left - wrapRect.left + gx * svgScale + 12;
+      var tipY = rect.top - wrapRect.top + y(rows[0].value) * svgScale - 10;
+      if (tipX + 160 > wrapRect.width) tipX = rect.left - wrapRect.left + gx * svgScale - 168;
+      tooltip.style.left = tipX + "px";
+      tooltip.style.top = tipY + "px";
+      tooltip.style.opacity = 1;
+    }
+
+    function onLeave() {
+      crosshair.style.opacity = 0;
+      Object.keys(hoverDots).forEach(function (k) { hoverDots[k].style.opacity = 0; });
+      tooltip.style.opacity = 0;
+    }
+
+    hitRect.addEventListener("pointermove", onMove);
+    hitRect.addEventListener("pointerleave", onLeave);
+  }
+
+  // ---- orchestrate ----
+  function renderAll() {
+    var inp = readInputs();
+    var scenarios = buildScenarios(inp);
+    var tilesInfo = renderTiles(inp, scenarios);
+    renderMeter(tilesInfo.stats.readiness, tilesInfo.status);
+    renderLegend();
+    renderChart(scenarios);
+    renderCompareTable(inp, scenarios);
+    renderYearlyTable(scenarios.current);
+  }
+
+  Object.keys(els).forEach(function (id) {
+    els[id].addEventListener("input", renderAll);
+  });
+
+  document.getElementById("dollarToggle").addEventListener("click", function (evt) {
+    var btn = evt.target.closest("button[data-mode]");
+    if (!btn) return;
+    dollarMode = btn.getAttribute("data-mode");
+    Array.from(this.querySelectorAll("button")).forEach(function (b) {
+      b.classList.toggle("active", b === btn);
+    });
+    renderAll();
+  });
+
+  document.getElementById("yearlyToggleBtn").addEventListener("click", function () {
+    showYearly = !showYearly;
+    this.textContent = showYearly ? "Hide year-by-year table" : "Show year-by-year table (Current Plan)";
+    renderAll();
+  });
+
+  window.addEventListener("resize", renderAll);
+
+  renderAll();
+})();
+</script>
+</body>
+</html>
