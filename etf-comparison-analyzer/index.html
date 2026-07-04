@@ -55,6 +55,9 @@
   }
   .wrap { max-width: 1080px; margin: 0 auto; padding: 28px 20px 80px; }
   header.top { margin-bottom: 20px; }
+  .title-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+  .refresh-btn { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; flex-shrink: 0; }
+  .refresh-btn.spinning { opacity: 0.7; }
   h1 { font-size: 28px; margin: 0 0 6px; letter-spacing: -0.02em; }
   .subtitle { color: var(--text-secondary); font-size: 15px; margin: 0 0 14px; }
   .asof { font-size: 13px; color: var(--text-muted); }
@@ -213,8 +216,13 @@
 <div class="wrap">
 
   <header class="top">
-    <h1>ETF Buy Analyzer</h1>
-    <p class="subtitle">Comparing <strong>VOO</strong> (Vanguard S&amp;P 500), <strong>QQQM</strong> (Invesco NASDAQ‑100), and <strong>SCHD</strong> (Schwab U.S. Dividend Equity) across technicals, fundamentals, momentum, price targets, and earnings.</p>
+    <div class="title-row">
+      <div>
+        <h1>ETF Buy Analyzer</h1>
+        <p class="subtitle">Comparing <strong>VOO</strong> (Vanguard S&amp;P 500), <strong>QQQM</strong> (Invesco NASDAQ‑100), and <strong>SCHD</strong> (Schwab U.S. Dividend Equity) across technicals, fundamentals, momentum, price targets, and earnings.</p>
+      </div>
+      <button id="topRefreshBtn" class="preset-btn refresh-btn" title="Fetch fresh live prices now">↻ Refresh live prices</button>
+    </div>
     <p class="asof">Data snapshot as of <strong>July 3, 2026</strong>. See methodology and sources at the bottom — figures vary by data provider and change daily.</p>
   </header>
 
@@ -764,6 +772,20 @@
       fetchLive();
     });
     document.getElementById('refreshBtn').addEventListener('click', fetchLive);
+
+    document.getElementById('topRefreshBtn').addEventListener('click', async (e) => {
+      const key = (localStorage.getItem(KEY_STORAGE) || '').trim();
+      if (!key) {
+        document.getElementById('live').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        input.focus();
+        return;
+      }
+      e.target.classList.add('spinning');
+      e.target.textContent = '↻ Refreshing…';
+      await fetchLive();
+      e.target.classList.remove('spinning');
+      e.target.textContent = '↻ Refresh live prices';
+    });
 
     buildLiveTiles({});
     if (saved) {
