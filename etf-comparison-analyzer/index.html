@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ETF Buy Analyzer — VOO vs QQQM vs SCHD</title>
+<style>
+  :root {
+    --surface-1:      #fcfcfb;
+    --page:           #f9f9f7;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --gridline:       #e1e0d9;
+    --baseline:       #c3c2b7;
+    --border:         rgba(11,11,11,0.10);
+    --good:           #0ca30c;
+    --warning:        #fab219;
+    --serious:        #ec835a;
+    --critical:       #d03b3b;
+
+    --voo:   #2a78d6; /* blue */
+    --qqqm:  #eb6834; /* orange */
+    --schd:  #008300; /* green */
+
+    --seq-100: #cde2fb; --seq-450: #2a78d6; --seq-700: #0d366b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --surface-1:      #1a1a19;
+      --page:           #0d0d0d;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:     #898781;
+      --gridline:       #2c2c2a;
+      --baseline:       #383835;
+      --border:         rgba(255,255,255,0.10);
+      --good:           #0ca30c;
+      --warning:        #fab219;
+      --serious:        #ec835a;
+      --critical:       #d03b3b;
+
+      --voo:  #3987e5;
+      --qqqm: #d95926;
+      --schd: #008300;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 28px 20px 80px; }
+  header.top { margin-bottom: 20px; }
+  h1 { font-size: 28px; margin: 0 0 6px; letter-spacing: -0.02em; }
+  .subtitle { color: var(--text-secondary); font-size: 15px; margin: 0 0 14px; }
+  .asof { font-size: 13px; color: var(--text-muted); }
+
+  .disclaimer {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--warning);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 28px;
+  }
+  .disclaimer strong { color: var(--text-primary); }
+
+  section { margin-bottom: 40px; }
+  h2 {
+    font-size: 19px;
+    margin: 0 0 4px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--gridline);
+  }
+  .section-note { color: var(--text-muted); font-size: 13px; margin: 8px 0 16px; }
+
+  .card {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+
+  /* ---- Winner hero ---- */
+  .hero { display: grid; grid-template-columns: 1fr; gap: 16px; }
+  .hero-top { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .winner-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 13px; font-weight: 600; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .winner-ticker { font-size: 34px; font-weight: 700; letter-spacing: -0.02em; }
+  .winner-score { font-size: 15px; color: var(--text-secondary); }
+  .winner-name { color: var(--text-secondary); font-size: 14px; }
+
+  .presets { display: flex; gap: 8px; flex-wrap: wrap; margin: 4px 0 6px; }
+  .preset-btn {
+    font: inherit; font-size: 13px; padding: 7px 12px; border-radius: 999px;
+    border: 1px solid var(--border); background: transparent; color: var(--text-primary);
+    cursor: pointer;
+  }
+  .preset-btn:hover { background: var(--gridline); }
+  .preset-btn.active { background: var(--text-primary); color: var(--surface-1); border-color: var(--text-primary); }
+
+  .sliders { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-top: 10px; }
+  .slider-row label { display: flex; justify-content: space-between; font-size: 13px; color: var(--text-secondary); margin-bottom: 4px; }
+  .slider-row .pct { color: var(--text-primary); font-weight: 600; font-variant-numeric: tabular-nums; }
+  input[type=range] { width: 100%; accent-color: var(--text-primary); }
+
+  /* ---- ranking bars ---- */
+  .rank-chart { display: flex; flex-direction: column; gap: 14px; margin-top: 18px; }
+  .rank-row { display: grid; grid-template-columns: 90px 1fr 56px; align-items: center; gap: 10px; }
+  .rank-label { font-weight: 600; font-size: 14px; }
+  .rank-track { position: relative; height: 20px; background: var(--gridline); border-radius: 5px; overflow: hidden; }
+  .rank-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 5px; transition: width 0.25s ease; }
+  .rank-value { font-variant-numeric: tabular-nums; font-size: 14px; text-align: right; color: var(--text-secondary); }
+
+  /* ---- legend ---- */
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; font-size: 13px; color: var(--text-secondary); margin-top: 10px; }
+  .legend .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+
+  /* ---- live data panel ---- */
+  .key-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
+  #apiKeyInput { flex: 1; min-width: 220px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--page); color: var(--text-primary); font: inherit; font-size: 13px; }
+  .key-link { font-size: 13px; color: var(--voo); text-decoration: none; }
+  .live-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+  .live-tile { border-top: 4px solid var(--etf-color); padding: 14px 16px; }
+  .live-tile .tkr { font-weight: 700; color: var(--etf-color); }
+  .live-tile .px { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 2px; }
+  .live-tile .chg { font-size: 13.5px; font-variant-numeric: tabular-nums; display: flex; align-items: center; gap: 4px; margin-top: 2px; }
+  .live-tile .chg.up { color: var(--good); }
+  .live-tile .chg.down { color: var(--critical); }
+  .live-tile .ts { font-size: 11.5px; color: var(--text-muted); margin-top: 8px; }
+  .status-pill { font-size: 11.5px; font-weight: 600; padding: 2px 9px; border-radius: 999px; margin-left: 8px; }
+  .status-pill.off { background: rgba(137,135,129,0.18); color: var(--text-muted); }
+  .status-pill.live { background: rgba(12,163,12,0.15); color: var(--good); }
+  .status-pill.err { background: rgba(208,59,59,0.15); color: var(--critical); }
+
+  /* ---- radar ---- */
+  .radar-wrap { display: flex; justify-content: center; }
+  svg { max-width: 100%; height: auto; }
+  .radar-axis-label { font-size: 11px; fill: var(--text-muted); }
+  .radar-grid { fill: none; stroke: var(--gridline); stroke-width: 1; }
+  .radar-spoke { stroke: var(--gridline); stroke-width: 1; }
+
+  /* ---- ETF cards grid ---- */
+  .etf-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+  .etf-card { border-top: 4px solid var(--etf-color); }
+  .etf-card h3 { margin: 0 0 2px; font-size: 20px; }
+  .etf-card .fund-name { color: var(--text-secondary); font-size: 13px; margin-bottom: 12px; }
+  .stat-line { display: flex; justify-content: space-between; font-size: 13.5px; padding: 5px 0; border-bottom: 1px dashed var(--gridline); }
+  .stat-line:last-child { border-bottom: none; }
+  .stat-line .k { color: var(--text-secondary); }
+  .stat-line .v { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  /* ---- gauge ---- */
+  .gauge-block { margin-bottom: 22px; }
+  .gauge-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+  .gauge-head .name { font-weight: 700; }
+  .gauge-head .rsi-val { font-variant-numeric: tabular-nums; color: var(--text-secondary); font-size: 13px; }
+  .gauge-track { position: relative; height: 14px; border-radius: 7px; overflow: visible;
+    background: linear-gradient(to right, var(--good) 0%, var(--good) 30%, var(--gridline) 30%, var(--gridline) 70%, var(--serious) 70%, var(--serious) 100%); }
+  .gauge-marker { position: absolute; top: -5px; width: 3px; height: 24px; border-radius: 2px; background: var(--text-primary); }
+  .gauge-zones { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+  .badge { display: inline-block; font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; margin-left: 8px; }
+  .badge.buy { background: rgba(12,163,12,0.15); color: var(--good); }
+  .badge.mixed { background: rgba(250,178,25,0.18); color: #8a6400; }
+  @media (prefers-color-scheme: dark) { .badge.mixed { color: var(--warning); } }
+  .badge.caution { background: rgba(236,131,90,0.18); color: var(--serious); }
+
+  table.fund-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  table.fund-table th { text-align: left; font-weight: 600; color: var(--text-muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; padding: 8px 10px; border-bottom: 1px solid var(--gridline); }
+  table.fund-table td { padding: 10px; border-bottom: 1px solid var(--gridline); vertical-align: middle; }
+  table.fund-table tr:last-child td { border-bottom: none; }
+  .microbar-cell { display: flex; align-items: center; gap: 8px; }
+  .microbar-track { flex: 1; height: 8px; background: var(--gridline); border-radius: 4px; min-width: 60px; max-width: 120px; }
+  .microbar-fill { height: 100%; border-radius: 4px; }
+  .microbar-num { font-variant-numeric: tabular-nums; font-weight: 600; min-width: 52px; text-align: right; }
+
+  .bar-chart-row { display: grid; grid-template-columns: 90px 1fr 64px; align-items: center; gap: 10px; margin-bottom: 12px; }
+
+  .narrative-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-top: 16px; }
+  .narrative-card { border-top: 4px solid var(--etf-color); padding: 16px; }
+  .narrative-card h4 { margin: 0 0 8px; font-size: 15px; }
+  .narrative-card p { margin: 0; font-size: 13.5px; color: var(--text-secondary); }
+
+  .callout-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 16px; }
+  .callout { padding: 14px 16px; }
+  .callout .num { font-size: 24px; font-weight: 700; }
+  .callout .lbl { font-size: 12.5px; color: var(--text-muted); margin-top: 2px; }
+
+  .methodology ol { font-size: 14px; color: var(--text-secondary); padding-left: 20px; }
+  .methodology li { margin-bottom: 8px; }
+
+  .sources { font-size: 13px; color: var(--text-secondary); }
+  .sources a { color: var(--voo); }
+  .sources ul { padding-left: 20px; columns: 2; }
+  @media (max-width: 640px) { .sources ul { columns: 1; } }
+
+  footer { text-align: center; font-size: 12.5px; color: var(--text-muted); margin-top: 40px; }
+
+  table-view-toggle { display:none; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header class="top">
+    <h1>ETF Buy Analyzer</h1>
+    <p class="subtitle">Comparing <strong>VOO</strong> (Vanguard S&amp;P 500), <strong>QQQM</strong> (Invesco NASDAQ‑100), and <strong>SCHD</strong> (Schwab U.S. Dividend Equity) across technicals, fundamentals, momentum, price targets, and earnings.</p>
+    <p class="asof">Data snapshot as of <strong>July 3, 2026</strong>. See methodology and sources at the bottom — figures vary by data provider and change daily.</p>
+  </header>
+
+  <div class="disclaimer">
+    <strong>Not financial advice.</strong> This page synthesizes publicly available market data into a scoring model for educational purposes only. Ranges shown reflect real disagreement between data providers (Barchart, TradingView, stockanalysis.com, etc.) at the time of research. Always verify current prices and do your own research before investing.
+  </div>
+
+  <!-- ================= HERO / INTERACTIVE RANKING ================= -->
+  <section id="hero">
+    <div class="card hero">
+      <div class="hero-top">
+        <div class="winner-badge">🏆 Best buy right now</div>
+        <div>
+          <div class="winner-ticker" id="winnerTicker">—</div>
+          <div class="winner-name" id="winnerName">—</div>
+        </div>
+        <div class="winner-score" id="winnerScore"></div>
+      </div>
+
+      <div>
+        <div class="section-note" style="margin:0 0 8px;">Pick an investor profile, or drag the sliders to weight what matters most to you — the ranking updates live.</div>
+        <div class="presets" id="presetRow"></div>
+      </div>
+
+      <div class="sliders" id="sliderRow"></div>
+
+      <div class="rank-chart" id="rankChart"></div>
+      <div class="legend" id="rankLegend"></div>
+    </div>
+  </section>
+
+  <!-- ================= LIVE PRICES ================= -->
+  <section id="live">
+    <h2>Live prices <span class="status-pill off" id="liveStatusBadge">not connected</span></h2>
+    <p class="section-note">
+      Real, real-time quotes via <a href="https://finnhub.io" target="_blank" rel="noopener">Finnhub</a>'s free API — genuinely live for US-listed ETFs, 60 requests/minute at no cost.
+      Everything else on this page (RSI, MACD, fundamentals, price targets, earnings) is a dated research snapshot, not a live feed — see why below.
+      Paste your own free key below; it's saved only in <em>this browser's</em> local storage, never sent anywhere but Finnhub, and never committed to this site's code.
+    </p>
+    <div class="card">
+      <div class="key-row">
+        <input type="password" id="apiKeyInput" placeholder="Paste your free Finnhub API key" autocomplete="off" />
+        <button id="saveKeyBtn" class="preset-btn">Save &amp; connect</button>
+        <button id="clearKeyBtn" class="preset-btn">Clear</button>
+        <button id="refreshBtn" class="preset-btn">Refresh now</button>
+        <a class="key-link" href="https://finnhub.io/register" target="_blank" rel="noopener">Get a free key (30 sec, no card) →</a>
+      </div>
+      <div class="live-grid" id="liveGrid"></div>
+      <div class="section-note" id="liveMeta" style="margin-top:12px;"></div>
+    </div>
+  </section>
+
+  <!-- ================= RADAR PROFILE ================= -->
+  <section id="profile">
+    <h2>Category profile</h2>
+    <p class="section-note">Each ETF's raw 1–10 score in every category (before your weighting is applied). This shows <em>why</em> a fund wins under a given profile — QQQM's shape leans toward momentum and earnings; SCHD's toward fundamentals; VOO is the most balanced.</p>
+    <div class="card">
+      <div class="radar-wrap" id="radarWrap"></div>
+      <div class="legend" id="radarLegend"></div>
+    </div>
+  </section>
+
+  <!-- ================= AT A GLANCE ================= -->
+  <section id="glance">
+    <h2>At a glance</h2>
+    <div class="etf-grid" id="etfCards"></div>
+  </section>
+
+  <!-- ================= TECHNICALS ================= -->
+  <section id="technicals">
+    <h2>Technicals — RSI &amp; MACD</h2>
+    <p class="section-note">RSI(14): under 30 = oversold, over 70 = overbought. MACD signal is the consensus buy/sell read across the sources cited below. <strong>Snapshot as of July 3, 2026</strong> — every free API we found either blocks direct browser requests (no CORS) or gates historical/indicator data behind a paid plan, so true live RSI/MACD would require your own paid data subscription. See Methodology for details.</p>
+    <div class="card" id="gaugeCard"></div>
+  </section>
+
+  <!-- ================= FUNDAMENTALS ================= -->
+  <section id="fundamentals">
+    <h2>Fundamentals</h2>
+    <p class="section-note">Cost, valuation, and income characteristics of each fund.</p>
+    <div class="card">
+      <table class="fund-table" id="fundTable"></table>
+    </div>
+  </section>
+
+  <!-- ================= MOMENTUM ================= -->
+  <section id="momentum">
+    <h2>Market momentum</h2>
+    <p class="section-note">Trailing 1‑year total return (price + dividends) and moving‑average trend read.</p>
+    <div class="card">
+      <div id="momentumChart"></div>
+    </div>
+    <div class="narrative-grid" id="momentumNarrative"></div>
+  </section>
+
+  <!-- ================= PRICE TARGETS ================= -->
+  <section id="targets">
+    <h2>Price targets &amp; analyst outlook</h2>
+    <p class="section-note">ETFs themselves rarely carry analyst price targets — instead this reflects strategist targets for the underlying benchmarks (S&amp;P 500 for VOO, Nasdaq‑100 for QQQM) and valuation-based commentary for SCHD's dividend‑value approach.</p>
+    <div class="narrative-grid" id="targetsNarrative"></div>
+  </section>
+
+  <!-- ================= EARNINGS ================= -->
+  <section id="earnings">
+    <h2>Earnings backdrop</h2>
+    <p class="section-note">Q2 2026 earnings season context (FactSet) and how exposed each fund's holdings are to the current growth drivers.</p>
+    <div class="callout-row">
+      <div class="card callout"><div class="num">+22.0%</div><div class="lbl">S&amp;P 500 Q2 2026 YoY earnings growth (FactSet estimate)</div></div>
+      <div class="card callout"><div class="num">+148%</div><div class="lbl">Semiconductor sector YoY earnings growth — largest single driver</div></div>
+      <div class="card callout"><div class="num">+24.1%</div><div class="lbl">Full-year CY2026 consensus earnings growth, S&amp;P 500</div></div>
+    </div>
+    <div class="narrative-grid" id="earningsNarrative"></div>
+  </section>
+
+  <!-- ================= METHODOLOGY ================= -->
+  <section id="methodology" class="methodology">
+    <h2>Methodology</h2>
+    <div class="card">
+      <ol>
+        <li>Each ETF is scored 1–10 in five categories — <strong>Technicals</strong> (RSI positioning + MACD signal quality), <strong>Fundamentals</strong> (valuation, cost, yield efficiency), <strong>Momentum</strong> (trailing returns + moving‑average trend), <strong>Price Targets</strong> (upside implied by benchmark/analyst outlooks), and <strong>Earnings</strong> (growth and quality of underlying holdings' earnings).</li>
+        <li>Scores are derived from the sourced data below, not computed live from a market feed — treat them as a structured snapshot, not a real-time signal.</li>
+        <li>The default view weights all five categories equally (20% each). Moving a slider re-normalizes all five weights to sum to 100% and recalculates each fund's overall score as a weighted average of its category scores, scaled to 100.</li>
+        <li>The investor-profile buttons are preset weightings — "Growth" leans on momentum/earnings, "Income/Value" leans on fundamentals, "Technical Trader" leans on technicals/momentum — so the "best buy" answer is explicitly conditional on what you're optimizing for, not a single universal answer.</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ================= SOURCES ================= -->
+  <section id="sources" class="sources">
+    <h2>Sources</h2>
+    <div class="card">
+      <ul>
+        <li><a href="https://finnhub.io/docs/api/quote" target="_blank" rel="noopener">Finnhub — live quote API (used for the Live Prices panel)</a></li>
+        <li><a href="https://www.barchart.com/etfs-funds/quotes/VOO/technical-analysis" target="_blank" rel="noopener">Barchart — VOO technicals</a></li>
+        <li><a href="https://www.tradingview.com/symbols/AMEX-VOO/technicals/" target="_blank" rel="noopener">TradingView — VOO technicals</a></li>
+        <li><a href="https://www.barchart.com/etfs-funds/quotes/QQQM/technical-analysis" target="_blank" rel="noopener">Barchart — QQQM technicals</a></li>
+        <li><a href="https://www.tradingview.com/symbols/NASDAQ-QQQM/technicals/" target="_blank" rel="noopener">TradingView — QQQM technicals</a></li>
+        <li><a href="https://www.barchart.com/etfs-funds/quotes/SCHD/technical-analysis" target="_blank" rel="noopener">Barchart — SCHD technicals</a></li>
+        <li><a href="https://www.chartmill.com/stock/quote/SCHD/technical-analysis" target="_blank" rel="noopener">ChartMill — SCHD technicals</a></li>
+        <li><a href="https://finance.yahoo.com/quote/VOO/" target="_blank" rel="noopener">Yahoo Finance — VOO quote</a></li>
+        <li><a href="https://finance.yahoo.com/quote/QQQM/" target="_blank" rel="noopener">Yahoo Finance — QQQM quote</a></li>
+        <li><a href="https://www.dividend.com/etfs/voo-vanguard-s-p-500-etf/" target="_blank" rel="noopener">Dividend.com — VOO yield/history</a></li>
+        <li><a href="https://stockanalysis.com/etf/schd/dividend/" target="_blank" rel="noopener">stockanalysis.com — SCHD dividend history</a></li>
+        <li><a href="https://www.fool.com/investing/2026/05/14/buy-sell-hold-schd-what-yield-expense-ratio-tell/" target="_blank" rel="noopener">The Motley Fool — SCHD valuation commentary</a></li>
+        <li><a href="https://totalrealreturns.com/n/VOO,QQQM,SCHD" target="_blank" rel="noopener">TotalRealReturns — VOO/QQQM/SCHD total return chart</a></li>
+        <li><a href="https://portfolioslab.com/tools/stock-comparison/QQQM/VOO" target="_blank" rel="noopener">PortfoliosLab — QQQM vs VOO comparison</a></li>
+        <li><a href="https://insight.factset.com/sp-500-earnings-season-preview-q2-2026" target="_blank" rel="noopener">FactSet — S&amp;P 500 Q2 2026 earnings preview</a></li>
+        <li><a href="https://www.thestreet.com/investing/stocks/every-major-wall-street-analysts-sp-500-forecast-for-2026" target="_blank" rel="noopener">TheStreet — Wall Street S&amp;P 500 2026 targets</a></li>
+        <li><a href="https://www.thestreet.com/investing/jpmorgan-resets-sp-500-price-target-for-the-rest-of-2026-stock-market" target="_blank" rel="noopener">TheStreet — JPMorgan S&amp;P 500 target reset</a></li>
+        <li><a href="https://www.forex.com/en/news-and-analysis/trade-to-watch-2026-nasdaq-100-correction-risk-before-new-highs/" target="_blank" rel="noopener">Forex.com — Nasdaq‑100 2026 technical outlook</a></li>
+      </ul>
+    </div>
+  </section>
+
+  <footer>Built as a static, self-contained analysis snapshot — no live data feed. Not investment advice.</footer>
+</div>
+
+<script>
+(function () {
+  const CATS = ['technicals', 'fundamentals', 'momentum', 'priceTargets', 'earnings'];
+  const CAT_LABELS = {
+    technicals: 'Technicals', fundamentals: 'Fundamentals', momentum: 'Momentum',
+    priceTargets: 'Price Targets', earnings: 'Earnings'
+  };
+
+  const funds = [
+    {
+      ticker: 'VOO', name: 'Vanguard S&P 500 ETF', color: 'var(--voo)', colorHex: null,
+      price: '$684.84', expenseRatio: '0.03%', dividendYield: '~1.07%', peRatio: '~25 (22–29 across sources)',
+      rsi: 58, rsiLabel: '58 (neutral-to-bullish, not overbought)', macd: 'Bullish — positive histogram, buy signal', maBadge: 'buy', maText: 'Strong Buy: 12 buy / 0 sell across MA5–MA200',
+      oneYearReturn: 21.6, ytd: '+9.25% YTD (2026)',
+      scores: { technicals: 8, fundamentals: 7.5, momentum: 7.5, priceTargets: 8, earnings: 8.5 },
+      momentumNarrative: 'Broad, diversified uptrend. Moving averages are aligned bullish across every timeframe with no sell signals, and RSI sits in healthy territory rather than overbought — the steadiest of the three.',
+      targetNarrative: 'Wall Street strategist year-end 2026 S&P 500 targets cluster roughly 7,100–7,654 (JPMorgan raised its target to 7,600 in April), implying further mid-to-high single digit upside from current levels — a broad-market, lower-volatility path to that upside.',
+      earningsNarrative: 'As the full S&P 500, VOO captures the entire +22% Q2 earnings growth story — concentrated gains from semis and mega-cap tech, plus broader participation from the other nine sectors (~9 of the 22 points), giving it the most diversified earnings base.',
+      pctile: 'core'
+    },
+    {
+      ticker: 'QQQM', name: 'Invesco NASDAQ-100 ETF', color: 'var(--qqqm)', colorHex: null,
+      price: '$294.11', expenseRatio: '0.15%', dividendYield: '~0.45%', peRatio: '~25.3',
+      rsi: 61, rsiLabel: '53–70 depending on source (overbought risk flagged)', macd: 'Bullish but paired with overbought caution', maBadge: 'caution', maText: 'Bullish across 8/20/50/200-day SMAs, but stretched',
+      oneYearReturn: 32.79, ytd: '+18.14% YTD (2026)',
+      scores: { technicals: 6.5, fundamentals: 6, momentum: 9, priceTargets: 7, earnings: 9.5 },
+      momentumNarrative: 'The clear momentum leader — YTD and 1-year returns lap the other two funds and every moving average is bullish. The flip side: RSI readings near/above 70 on some sources mean it is the most technically stretched of the three, raising pullback risk.',
+      targetNarrative: 'Technical bull case points to Nasdaq‑100 index targets of 32,500–35,000 on a sustained breakout above the ~30,660 record high; the 200‑day moving average near 25,733 marks the line where the rally would be considered stalled. Strategists frame 2026 as "correction risk before new highs" — upside is real but comes with more turbulence.',
+      earningsNarrative: 'QQQM is the single biggest beneficiary of this earnings season: semiconductor names (+148% YoY) and mega-cap growth/tech (+6 pts) are the two largest contributors to S&P earnings growth, and both are concentrated in the Nasdaq‑100.',
+      pctile: 'growth'
+    },
+    {
+      ticker: 'SCHD', name: 'Schwab U.S. Dividend Equity ETF', color: 'var(--schd)', colorHex: null,
+      price: '$32.39', expenseRatio: '0.06%', dividendYield: '~3.3% (3.17–3.45%)', peRatio: '~16 (14.75–17.05)',
+      rsi: 60, rsiLabel: '59–61 (neutral-to-bullish)', macd: 'Bullish short-term, but long-term average flashes caution', maBadge: 'mixed', maText: 'Short/medium-term Strong Buy (11 buy / 1 sell); long-term average leans sell',
+      oneYearReturn: 23.37, ytd: 'YTD figure not consistently reported across sources',
+      scores: { technicals: 7, fundamentals: 9, momentum: 6.5, priceTargets: 6.5, earnings: 6.5 },
+      momentumNarrative: 'Solid 1-year total return and a healthy RSI, but the signal is genuinely split by timeframe: short-term moving averages say buy, while the longer-term average is flashing a general sell — the most mixed technical picture of the three.',
+      targetNarrative: 'SCHD tracks a dividend-quality index rather than a broad benchmark, so there is no single "index price target." Analyst commentary instead frames the case around valuation: a P/E in the mid-teens (a real discount to VOO/QQQM) plus a dividend that grew ~3.3% YoY in Q1 2026, favoring total-return-via-income over pure price appreciation.',
+      earningsNarrative: 'SCHD\'s holdings skew toward value and dividend-payers — financials, staples, healthcare, industrials, energy — so it still benefits from broad S&P earnings growth but has minimal exposure to the semiconductor/AI-capex surge driving the bulk of this quarter\'s gains.',
+      pctile: 'income'
+    }
+  ];
+
+  const presets = [
+    { id: 'balanced', label: 'Balanced', weights: { technicals: 20, fundamentals: 20, momentum: 20, priceTargets: 20, earnings: 20 } },
+    { id: 'growth', label: 'Growth / momentum investor', weights: { technicals: 10, fundamentals: 5, momentum: 35, priceTargets: 20, earnings: 30 } },
+    { id: 'income', label: 'Income / value investor', weights: { technicals: 15, fundamentals: 40, momentum: 10, priceTargets: 15, earnings: 20 } },
+    { id: 'trader', label: 'Technical trader', weights: { technicals: 50, fundamentals: 5, momentum: 30, priceTargets: 5, earnings: 10 } }
+  ];
+
+  let weights = { ...presets[0].weights };
+  let activePreset = 'balanced';
+
+  function resolveColor(cssVar) {
+    const el = document.createElement('div');
+    el.style.color = cssVar;
+    document.body.appendChild(el);
+    const rgb = getComputedStyle(el).color;
+    document.body.removeChild(el);
+    return rgb;
+  }
+
+  function normalizedWeights() {
+    const sum = CATS.reduce((s, c) => s + weights[c], 0) || 1;
+    const out = {};
+    CATS.forEach(c => out[c] = weights[c] / sum);
+    return out;
+  }
+
+  function scoreFund(fund, nw) {
+    return CATS.reduce((s, c) => s + fund.scores[c] * nw[c], 0) * 10;
+  }
+
+  function render() {
+    const nw = normalizedWeights();
+    const scored = funds.map(f => ({ f, score: scoreFund(f, nw) })).sort((a, b) => b.score - a.score);
+
+    // Hero winner
+    const winner = scored[0];
+    document.getElementById('winnerTicker').textContent = winner.f.ticker;
+    document.getElementById('winnerTicker').style.color = winner.f.color;
+    document.getElementById('winnerName').textContent = winner.f.name;
+    document.getElementById('winnerScore').textContent = `Weighted score: ${winner.score.toFixed(1)} / 100`;
+
+    // Sliders
+    const sliderRow = document.getElementById('sliderRow');
+    sliderRow.innerHTML = '';
+    CATS.forEach(c => {
+      const pct = Math.round(nw[c] * 100);
+      const row = document.createElement('div');
+      row.className = 'slider-row';
+      row.innerHTML = `
+        <label>${CAT_LABELS[c]} <span class="pct">${pct}%</span></label>
+        <input type="range" min="0" max="100" step="5" value="${weights[c]}" data-cat="${c}" />
+      `;
+      sliderRow.appendChild(row);
+    });
+    sliderRow.querySelectorAll('input[type=range]').forEach(inp => {
+      inp.addEventListener('input', e => {
+        weights[e.target.dataset.cat] = Number(e.target.value);
+        activePreset = null;
+        document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+        render();
+      });
+    });
+
+    // Presets
+    const presetRow = document.getElementById('presetRow');
+    if (!presetRow.dataset.built) {
+      presets.forEach(p => {
+        const btn = document.createElement('button');
+        btn.className = 'preset-btn' + (p.id === activePreset ? ' active' : '');
+        btn.textContent = p.label;
+        btn.addEventListener('click', () => {
+          weights = { ...p.weights };
+          activePreset = p.id;
+          render();
+        });
+        presetRow.appendChild(btn);
+      });
+      presetRow.dataset.built = '1';
+    }
+    presetRow.querySelectorAll('.preset-btn').forEach((btn, i) => {
+      btn.classList.toggle('active', presets[i].id === activePreset);
+    });
+
+    // Ranking bars
+    const rankChart = document.getElementById('rankChart');
+    rankChart.innerHTML = '';
+    const maxScore = Math.max(...scored.map(s => s.score), 1);
+    scored.forEach(({ f, score }) => {
+      const row = document.createElement('div');
+      row.className = 'rank-row';
+      row.innerHTML = `
+        <div class="rank-label" style="color:${f.color}">${f.ticker}</div>
+        <div class="rank-track"><div class="rank-fill" style="width:${(score / maxScore * 100).toFixed(1)}%; background:${f.color}"></div></div>
+        <div class="rank-value">${score.toFixed(1)}</div>
+      `;
+      rankChart.appendChild(row);
+    });
+
+    const rankLegend = document.getElementById('rankLegend');
+    rankLegend.innerHTML = funds.map(f => `<span><span class="dot" style="background:${f.color}"></span>${f.ticker} — ${f.name}</span>`).join('');
+  }
+
+  // ---------------- Radar chart (static category scores) ----------------
+  function buildRadar() {
+    const size = 420, cx = size / 2, cy = size / 2 + 6, r = 150;
+    const n = CATS.length;
+    const angle = i => -Math.PI / 2 + (i * 2 * Math.PI / n);
+
+    function pt(i, value) {
+      const rr = (value / 10) * r;
+      return [cx + rr * Math.cos(angle(i)), cy + rr * Math.sin(angle(i))];
+    }
+
+    let svg = `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" role="img" aria-label="Radar chart comparing VOO, QQQM, and SCHD across five categories">`;
+
+    // grid rings
+    [2, 4, 6, 8, 10].forEach(v => {
+      const ring = CATS.map((_, i) => pt(i, v).join(',')).join(' ');
+      svg += `<polygon class="radar-grid" points="${ring}" />`;
+    });
+    // spokes
+    CATS.forEach((_, i) => {
+      const [x, y] = pt(i, 10);
+      svg += `<line class="radar-spoke" x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" />`;
+    });
+    // axis labels
+    CATS.forEach((c, i) => {
+      const [x, y] = pt(i, 11.6);
+      svg += `<text class="radar-axis-label" x="${x}" y="${y}" text-anchor="middle" dominant-baseline="middle">${CAT_LABELS[c]}</text>`;
+    });
+    // series polygons
+    funds.forEach(f => {
+      const pts = CATS.map((c, i) => pt(i, f.scores[c]).join(',')).join(' ');
+      const color = resolveColor(f.color);
+      svg += `<polygon points="${pts}" fill="${color}" fill-opacity="0.12" stroke="${color}" stroke-width="2" />`;
+      CATS.forEach((c, i) => {
+        const [x, y] = pt(i, f.scores[c]);
+        svg += `<circle cx="${x}" cy="${y}" r="4" fill="${color}" stroke="var(--surface-1)" stroke-width="1.5" />`;
+      });
+    });
+    svg += '</svg>';
+
+    document.getElementById('radarWrap').innerHTML = svg;
+    document.getElementById('radarLegend').innerHTML = funds.map(f =>
+      `<span><span class="dot" style="background:${f.color}"></span>${f.ticker}: ${CATS.map(c => `${CAT_LABELS[c][0]} ${f.scores[c]}`).join(' · ')}</span>`
+    ).join('');
+  }
+
+  // ---------------- ETF at-a-glance cards ----------------
+  function buildEtfCards() {
+    const wrap = document.getElementById('etfCards');
+    wrap.innerHTML = funds.map(f => `
+      <div class="card etf-card" style="--etf-color:${f.color}">
+        <h3 style="color:${f.color}">${f.ticker}</h3>
+        <div class="fund-name">${f.name}</div>
+        <div class="stat-line"><span class="k">Price</span><span class="v">${f.price}</span></div>
+        <div class="stat-line"><span class="k">Expense ratio</span><span class="v">${f.expenseRatio}</span></div>
+        <div class="stat-line"><span class="k">Dividend yield</span><span class="v">${f.dividendYield}</span></div>
+        <div class="stat-line"><span class="k">P/E ratio</span><span class="v">${f.peRatio}</span></div>
+        <div class="stat-line"><span class="k">RSI (14)</span><span class="v">${f.rsi}</span></div>
+        <div class="stat-line"><span class="k">1-year return</span><span class="v">${f.oneYearReturn}%</span></div>
+      </div>
+    `).join('');
+  }
+
+  // ---------------- RSI / MACD gauges ----------------
+  function buildGauges() {
+    const card = document.getElementById('gaugeCard');
+    card.innerHTML = funds.map(f => `
+      <div class="gauge-block">
+        <div class="gauge-head">
+          <span class="name" style="color:${f.color}">${f.ticker}
+            <span class="badge ${f.maBadge}">${f.maBadge === 'buy' ? 'Buy' : f.maBadge === 'caution' ? 'Caution' : 'Mixed'}</span>
+          </span>
+          <span class="rsi-val">RSI: ${f.rsiLabel}</span>
+        </div>
+        <div class="gauge-track">
+          <div class="gauge-marker" style="left:calc(${f.rsi}% - 2px); background:${f.color}"></div>
+        </div>
+        <div class="gauge-zones"><span>0 · oversold</span><span>30–70 · neutral</span><span>100 · overbought</span></div>
+        <p style="font-size:13.5px; color:var(--text-secondary); margin:10px 0 0;"><strong>MACD:</strong> ${f.macd}<br><strong>Moving averages:</strong> ${f.maText}</p>
+      </div>
+    `).join('');
+  }
+
+  // ---------------- Fundamentals table ----------------
+  function buildFundTable() {
+    const maxPE = 26; // rough max for microbar scaling (SCHD ~16, VOO ~25, QQQM ~25.3)
+    const peVal = { VOO: 25, QQQM: 25.3, SCHD: 16 };
+    const yieldVal = { VOO: 1.07, QQQM: 0.45, SCHD: 3.3 };
+    const maxYield = 3.5;
+    const table = document.getElementById('fundTable');
+    table.innerHTML = `
+      <thead><tr><th>Fund</th><th>Expense ratio</th><th>Dividend yield</th><th>P/E ratio</th></tr></thead>
+      <tbody>
+        ${funds.map(f => `
+          <tr>
+            <td style="font-weight:700; color:${f.color}">${f.ticker}</td>
+            <td>${f.expenseRatio}</td>
+            <td>
+              <div class="microbar-cell">
+                <div class="microbar-track"><div class="microbar-fill" style="width:${(yieldVal[f.ticker] / maxYield * 100).toFixed(0)}%; background:${f.color}"></div></div>
+                <span class="microbar-num">${f.dividendYield}</span>
+              </div>
+            </td>
+            <td>
+              <div class="microbar-cell">
+                <div class="microbar-track"><div class="microbar-fill" style="width:${(peVal[f.ticker] / maxPE * 100).toFixed(0)}%; background:${f.color}"></div></div>
+                <span class="microbar-num">${f.peRatio.split(' ')[0]}</span>
+              </div>
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>
+    `;
+  }
+
+  // ---------------- Momentum bar chart (1-year return) ----------------
+  function buildMomentumChart() {
+    const chart = document.getElementById('momentumChart');
+    const maxVal = Math.max(...funds.map(f => f.oneYearReturn));
+    chart.innerHTML = funds.map(f => `
+      <div class="bar-chart-row">
+        <div class="rank-label" style="color:${f.color}">${f.ticker}</div>
+        <div class="rank-track"><div class="rank-fill" style="width:${(f.oneYearReturn / maxVal * 100).toFixed(1)}%; background:${f.color}"></div></div>
+        <div class="rank-value">${f.oneYearReturn}%</div>
+      </div>
+    `).join('') + `<div class="section-note" style="margin-top:4px;">Trailing 1-year total return (dividends reinvested). ${funds.map(f => f.ytd).join(' · ')}</div>`;
+
+    document.getElementById('momentumNarrative').innerHTML = funds.map(f => `
+      <div class="card narrative-card" style="--etf-color:${f.color}">
+        <h4 style="color:${f.color}">${f.ticker}</h4>
+        <p>${f.momentumNarrative}</p>
+      </div>
+    `).join('');
+  }
+
+  function buildTargetsNarrative() {
+    document.getElementById('targetsNarrative').innerHTML = funds.map(f => `
+      <div class="card narrative-card" style="--etf-color:${f.color}">
+        <h4 style="color:${f.color}">${f.ticker}</h4>
+        <p>${f.targetNarrative}</p>
+      </div>
+    `).join('');
+  }
+
+  function buildEarningsNarrative() {
+    document.getElementById('earningsNarrative').innerHTML = funds.map(f => `
+      <div class="card narrative-card" style="--etf-color:${f.color}">
+        <h4 style="color:${f.color}">${f.ticker}</h4>
+        <p>${f.earningsNarrative}</p>
+      </div>
+    `).join('');
+  }
+
+  // ---------------- Live prices (Finnhub, CORS-enabled free API) ----------------
+  const KEY_STORAGE = 'etfAnalyzer_finnhubKey';
+  let liveTimer = null;
+
+  function buildLiveTiles(state) {
+    const grid = document.getElementById('liveGrid');
+    grid.innerHTML = funds.map(f => {
+      const s = state[f.ticker] || {};
+      const chg = s.d != null ? `<div class="chg ${s.d >= 0 ? 'up' : 'down'}">${s.d >= 0 ? '▲' : '▼'} ${Math.abs(s.d).toFixed(2)} (${s.dp.toFixed(2)}%)</div>` : '';
+      const px = s.c != null ? `$${s.c.toFixed(2)}` : '—';
+      const ts = s.t ? `Updated ${new Date(s.t * 1000).toLocaleTimeString()}` : (s.error ? s.error : 'No live data yet');
+      return `
+        <div class="card live-tile" style="--etf-color:${f.color}">
+          <div class="tkr">${f.ticker}</div>
+          <div class="px">${px}</div>
+          ${chg}
+          <div class="ts">${ts}</div>
+        </div>`;
+    }).join('');
+  }
+
+  function setStatus(kind, text) {
+    const el = document.getElementById('liveStatusBadge');
+    el.className = 'status-pill ' + kind;
+    el.textContent = text;
+  }
+
+  async function fetchLive() {
+    const key = (localStorage.getItem(KEY_STORAGE) || '').trim();
+    if (!key) {
+      setStatus('off', 'not connected');
+      buildLiveTiles({});
+      document.getElementById('liveMeta').textContent = 'Add a free Finnhub API key above to pull live prices.';
+      return;
+    }
+    setStatus('off', 'connecting…');
+    const state = {};
+    let anyOk = false, anyAuthErr = false, anyRateErr = false;
+    await Promise.all(funds.map(async f => {
+      try {
+        const res = await fetch(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(f.ticker)}&token=${encodeURIComponent(key)}`);
+        if (res.status === 401 || res.status === 403) { anyAuthErr = true; state[f.ticker] = { error: 'Invalid API key' }; return; }
+        if (res.status === 429) { anyRateErr = true; state[f.ticker] = { error: 'Rate limited — retry shortly' }; return; }
+        if (!res.ok) { state[f.ticker] = { error: `Error ${res.status}` }; return; }
+        const j = await res.json();
+        if (j && typeof j.c === 'number' && j.c > 0) {
+          state[f.ticker] = { c: j.c, d: j.d, dp: j.dp, t: j.t || Math.floor(Date.now() / 1000) };
+          anyOk = true;
+        } else {
+          state[f.ticker] = { error: 'No data returned' };
+        }
+      } catch (err) {
+        state[f.ticker] = { error: 'Network/CORS error' };
+      }
+    }));
+    buildLiveTiles(state);
+    if (anyAuthErr) {
+      setStatus('err', 'invalid key');
+      document.getElementById('liveMeta').textContent = 'Finnhub rejected the API key — double-check it was copied correctly.';
+    } else if (anyRateErr && !anyOk) {
+      setStatus('err', 'rate limited');
+      document.getElementById('liveMeta').textContent = 'Hit Finnhub\'s free-tier rate limit — wait a minute and refresh.';
+    } else if (anyOk) {
+      setStatus('live', 'live');
+      document.getElementById('liveMeta').textContent = 'Auto-refreshes every 60 seconds while this tab is open.';
+    } else {
+      setStatus('err', 'error');
+      document.getElementById('liveMeta').textContent = 'Could not fetch live quotes. Check your key and connection, then try Refresh now.';
+    }
+  }
+
+  function startAutoRefresh() {
+    if (liveTimer) clearInterval(liveTimer);
+    liveTimer = setInterval(fetchLive, 60000);
+  }
+
+  function initLivePanel() {
+    const input = document.getElementById('apiKeyInput');
+    const saved = localStorage.getItem(KEY_STORAGE);
+    if (saved) input.value = saved;
+
+    document.getElementById('saveKeyBtn').addEventListener('click', () => {
+      const v = input.value.trim();
+      if (v) localStorage.setItem(KEY_STORAGE, v);
+      fetchLive();
+      startAutoRefresh();
+    });
+    document.getElementById('clearKeyBtn').addEventListener('click', () => {
+      localStorage.removeItem(KEY_STORAGE);
+      input.value = '';
+      if (liveTimer) clearInterval(liveTimer);
+      fetchLive();
+    });
+    document.getElementById('refreshBtn').addEventListener('click', fetchLive);
+
+    buildLiveTiles({});
+    if (saved) {
+      fetchLive();
+      startAutoRefresh();
+    } else {
+      setStatus('off', 'not connected');
+      document.getElementById('liveMeta').textContent = 'Add a free Finnhub API key above to pull live prices.';
+    }
+  }
+
+  buildRadar();
+  buildEtfCards();
+  buildGauges();
+  buildFundTable();
+  buildMomentumChart();
+  buildTargetsNarrative();
+  buildEarningsNarrative();
+  initLivePanel();
+  render();
+})();
+</script>
+</body>
+</html>
